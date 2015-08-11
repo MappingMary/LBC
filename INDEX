@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
+      on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>CSULB CITY OF LONG BEACH</title>
+	
+	
+    <link rel="stylesheet" href="http://js.arcgis.com/3.13/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="http://js.arcgis.com/3.13/esri/css/esri.css">
+	<style>
+  h1{
+  color: rgb(0,92,230);
+  font-family: "Anton", sans-serif;
+  font-weight: 900;
+  font-size-adjust: 1000px;
+  padding:0;
+  margin:0;
+  height:0%;
+ text-align: center;
+  }
+  h2{
+  color: rgb(0,92,230);
+  font-family: "Anton", sans-serif;
+  font-weight: 900;
+  font-size-adjust: 1000px;
+  padding: 1000;
+  margin:10;
+  height:100%;
+ text-align: center;
+  }
+  p {
+  color: blue;
+  font-family: Oswald, sans-serif;
+  font-size-adjust: 28px;
+  text-align: center;
+  padding: 10;
+  margin:10;
+  height:50%;
+  }
+  
+  #HomeButton {
+		position: absolute;
+		top: 1100px;
+		left: 32px;
+		
+		}
+	
+ 
+  
+  </style>
+
+	<script src="http://js.arcgis.com/3.13/"></script>
+	  
+    <script>
+    var map;
+	  var HomeButton;
+	  var langLayer;
+	  var zoneLayer;
+	  var landLayer;
+	  var crimeLayer;
+	  var populationLayer;
+	  var lang_attTable;
+	  var zone_attTable;
+	  var land_attTable;
+	  var crime_attTable;
+	  var population_attTable;
+	  var infoWindow;
+	  var directions;
+	  
+	 
+	  
+	  
+      require([
+		 "esri/urlUtils",
+        "esri/map",
+		"esri/dijit/Directions",
+		"dojo/parser",
+		"esri/dijit/HomeButton",
+		"esri/dijit/InfoWindowLite",
+		"esri/InfoTemplate",
+		"esri/geometry/Extent",
+		"esri/SpatialReference",
+        "esri/layers/ArcGISImageServiceLayer",
+        "esri/layers/ImageServiceParameters",
+		"dojo/dom",
+		"dojo/dom-construct",
+        "dojo/on",
+        "dojo/query",	
+		"dijit/layout/ContentPane",
+        "dojo/domReady!"
+      ],
+        function (urlUtils, Map, Directions, parser, HomeButton, InfoWindowLite, InfoTemplate, extent, SpatialReference, ArcGISImageServiceLayer, ImageParameters, dom, domConstruct, on, query) {
+          var layer, visibleLayerIds = [];
+		  
+		  parser.parse();
+        //all requests to route.arcgis.com will proxy to the proxyUrl defined in this object.
+        urlUtils.addProxyRule({
+          urlPrefix: "route.arcgis.com",  
+          proxyUrl: "/sproxy/"
+        });
+        urlUtils.addProxyRule({
+          urlPrefix: "traffic.arcgis.com",  
+          proxyUrl: "/sproxy/"
+        });
+
+
+          map = new Map("map", {
+			     basemap:"streets",
+			     zoom: 11
+          });
+		  
+		   var dir = new Directions({
+			map: map
+			},"Directions");
+			dir.startup();
+    
+		  
+		 var  home = new HomeButton({
+				map: map
+				},"HomeButton");
+				home.startup();
+				
+				
+		 
+		  
+		var infoWindow = new InfoWindowLite(null, domConstruct.create("div", null, null, map.root));
+        infoWindow.startup();
+        map.setInfoWindow(infoWindow);
+		map.infoWindow.resize(200, 75);
+		
+		
+			
+	
+
+          //Use the ImageParameters to set the visibleLayerIds layers in the map service during ArcGISDynamicMapServiceLayer construction.
+          var imageParameters = new ImageParameters();
+          imageParameters.layerIds = [0,1,2,3,4];
+          imageParameters.layerOption = ImageParameters.LAYER_OPTION_SHOW;
+          //can also be: LAYER_OPTION_EXCLUDE, LAYER_OPTION_HIDE, LAYER_OPTION_INCLUDE
+
+          langLayer = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_languages/ImageServer",
+            {"imageParameters": imageParameters,
+			mode: ArcGISImageServiceLayer.MODE_ONDEMAND,
+			outfields: ["DENSITY"]});
+			map.addLayer(ArcGISImageServiceLayer);
+
+			
+		  
+				zoneLayer = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_zoning/ImageServer",
+    				{"imageParameters": imageParameters,
+					mode: ArcGISImageServiceLayer.MODE_ONDEMAND,
+					outfields: ["Zoning"]});
+					map.addLayer(ArcGISImageServiceLayer);	
+					
+    				
+				landLayer = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_landcover/ImageServer",		
+    				{"imageParameters": imageParameters,
+					mode: ArcGISImageServiceLayer.MODE_ONDEMAND,
+					outfields: ["Land_Cover"]});
+					map.addLayer(ArcGISImageServiceLayer);
+					
+					
+				crimeLayer = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_crime/ImageServer",		
+    				{"imageParameters": imageParameters,
+					mode: ArcGISImageServiceLayer.MODE_ONDEMAND,
+					outfields: ["Count"]});
+					map.addLayer(ArcGISImageServiceLayer);	
+			
+				populationLayer = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_population/ImageServer",		
+    				{"imageParameters": imageParameters,
+					mode: ArcGISImageServiceLayer.MODE_ONDEMAND,
+					outfields: ["Count"]});
+					map.addLayer(ArcGISImageServiceLayer);		
+			
+			
+			
+    
+    		  var initialExtent = new extent(-13175455.131354066, 3987961.9557300936, -13129592.914383022, 4018536.7670441233, new SpatialReference({ wkid:102100 }))
+    		  map.setExtent(initialExtent);
+		  
+			on(dom.byId("layer0CheckBox"), "change", showlangLayer);
+			on(dom.byId("layer1CheckBox"), "change", showzoneLayer); 
+		    on(dom.byId("layer2CheckBox"), "change", showlandLayer);
+			on(dom.byId("layer3CheckBox"), "change", showcrimeLayer);
+			on(dom.byId("layer4CheckBox"), "change", showpopulationLayer);
+			
+			showlangLayer(); 
+    		
+			require(["esri/request" ], function(esriRequest) {
+            var layerUrl = "http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_languages/ImageServer/rasterAttributeTable";
+            var  layersLoaded = esriRequest({
+              url: layerUrl,
+              content: { f: "json" },
+              handleAs: "json",
+              callbackParamName: "callback"
+            });
+             layersLoaded.then(
+              function(response) {
+                console.log("Success: ", response);
+                lang_attTable=response;
+            }, function(error) {
+                console.log("Error: ", error.message);
+            });
+          });
+		  
+		  require(["esri/request" ], function(esriRequest) {
+            var layerUrl = "http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_zoning/ImageServer/rasterAttributeTable";
+            var  layersLoaded = esriRequest({
+              url: layerUrl,
+              content: { f: "json" },
+              handleAs: "json",
+              callbackParamName: "callback"
+            });
+             layersLoaded.then(
+              function(response) {
+                console.log("Success: ", response);
+                zone_attTable=response;
+            }, function(error) {
+                console.log("Error: ", error.message);
+            });
+          });
+		  
+		  require(["esri/request" ], function(esriRequest) {
+            var layerUrl = "http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_landcover/ImageServer/rasterAttributeTable";
+            var layersLoaded = esriRequest({
+              url: layerUrl,
+              content: { f: "json" },
+              handleAs: "json",
+              callbackParamName: "callback"
+            });
+             layersLoaded.then(
+              function(response) {
+                console.log("Success: ", response);
+                land_attTable=response;
+            }, function(error) {
+                console.log("Error: ", error.message);
+            });
+          });
+		  
+		  require(["esri/request" ], function(esriRequest) {
+            var layerUrl = "http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_crime/ImageServer/rasterAttributeTable";
+            var  layersLoaded = esriRequest({
+              url: layerUrl,
+              content: { f: "json" },
+              handleAs: "json",
+              callbackParamName: "callback"
+            });
+             layersLoaded.then(
+              function(response) {
+                console.log("Success: ", response);
+                crime_attTable=response;
+            }, function(error) {
+                console.log("Error: ", error.message);
+            });
+          });
+		  
+		  require(["esri/request" ], function(esriRequest) {
+            var layerUrl = "http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_population/ImageServer/rasterAttributeTable";
+            var  layersLoaded = esriRequest({
+              url: layerUrl,
+              content: { f: "json" },
+              handleAs: "json",
+              callbackParamName: "callback"
+            });
+             layersLoaded.then(
+              function(response) {
+                console.log("Success: ", response);
+                population_attTable=response;
+            }, function(error) {
+                console.log("Error: ", error.message);
+            });
+          });
+
+		    map.on("click", function(evt) {
+            
+            require([
+            "esri/tasks/ImageServiceIdentifyTask",
+            "esri/tasks/ImageServiceIdentifyParameters"
+            ], function(ImageServiceIdentifyTask, ImageServiceIdentifyParameters) {
+              
+			  if (dom.byId("layer0CheckBox").checked) {
+			  var imageTask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_languages/ImageServer");
+              
+              var imageParams = new ImageServiceIdentifyParameters();
+              imageParams.geometry = evt.mapPoint;
+              
+              imageTask.execute(imageParams);
+              imageTask.on("complete", function(result) {
+                //console.log(result);
+                
+                dojo.forEach(lang_attTable.features, function(feature){
+                  //console.log(feature);
+                  if (feature.attributes.Value.toString() == result.result.value) {
+                    //console.log(feature.attributes.DENSITY)
+					 map.infoWindow.setContent("Density: " + feature.attributes.DENSITY);
+					 map.infoWindow.setTitle("Language Density");
+					 map.infoWindow.show(evt.mapPoint);
+                  }
+                });
+              });
+			  }
+			  else if (dom.byId("layer1CheckBox").checked) {
+			  var imageTask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_zoning/ImageServer");
+              
+              var imageParams = new ImageServiceIdentifyParameters();
+              imageParams.geometry = evt.mapPoint;
+              
+              imageTask.execute(imageParams);
+              imageTask.on("complete", function(result) {
+                //console.log(result);
+                
+                dojo.forEach(zone_attTable.features, function(feature){
+                  //console.log(feature);
+                  if (feature.attributes.Value.toString() == result.result.value) {
+                    //console.log(feature.attributes.Zoning)
+					 map.infoWindow.setContent("Zoning: " + feature.attributes.Zoning);
+					 map.infoWindow.setTitle("Zoning");
+					 map.infoWindow.show(evt.mapPoint);
+                  }
+                });
+              });
+			  
+			  }
+			  else if (dom.byId("layer2CheckBox").checked) {
+			  var imageTask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_landcover/ImageServer");
+              
+              var imageParams = new ImageServiceIdentifyParameters();
+              imageParams.geometry = evt.mapPoint;
+              
+              imageTask.execute(imageParams);
+              imageTask.on("complete", function(result) {
+                //console.log(result);
+                
+                dojo.forEach(land_attTable.features, function(feature){
+                  //console.log(feature);
+                  if (feature.attributes.Value.toString() == result.result.value) {
+                    console.log(feature.attributes.Land_Cover)
+					 map.infoWindow.setContent("Land Cover: " + feature.attributes.Land_Cover);
+					 map.infoWindow.setTitle("\Land Cover");
+					 map.infoWindow.show(evt.mapPoint);
+                  }
+                });
+              });
+			  
+			  }
+			  else if (dom.byId("layer3CheckBox").checked) {
+			  
+			  
+			  var imageTask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_crime/ImageServer");
+              
+              var imageParams = new ImageServiceIdentifyParameters();
+              imageParams.geometry = evt.mapPoint;
+              
+              imageTask.execute(imageParams);
+              imageTask.on("complete", function(result) {
+                //console.log(result);
+                
+                dojo.forEach(crime_attTable.features, function(feature){
+                  //console.log(feature);
+                  if (feature.attributes.Value.toString() == result.result.value) {
+                    //console.log(feature.attributes.Count)
+					 map.infoWindow.setContent("Count: " + feature.attributes.Count);
+					 map.infoWindow.setTitle("Crime");
+					 map.infoWindow.show(evt.mapPoint);
+                  }
+                });
+              });
+			  
+			  }
+			  
+			  else {
+			  
+			  
+			  var imageTask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_population/ImageServer");
+              
+              var imageParams = new ImageServiceIdentifyParameters();
+              imageParams.geometry = evt.mapPoint;
+              
+              imageTask.execute(imageParams);
+              imageTask.on("complete", function(result) {
+                //console.log(result);
+                
+                dojo.forEach(population_attTable.features, function(feature){
+                  //console.log(feature);
+                  if (feature.attributes.Value.toString() == result.result.value) {
+                    //console.log(feature.attributes.Count)
+					 map.infoWindow.setContent("Count: " + feature.attributes.Count);
+					 map.infoWindow.setTitle("Population");
+					 map.infoWindow.show(evt.mapPoint);
+                  }
+                });
+              });
+			  
+			  }
+			  
+			  
+
+            });
+          });
+        
+          function showlangLayer () {
+    		   map.addLayer(langLayer);
+    		   map.removeLayer(zoneLayer);
+    		   map.removeLayer(landLayer);
+			   map.removeLayer(crimeLayer);
+			   map.removeLayer(populationLayer);
+			  
+          }
+		  
+    		  function showzoneLayer () {
+    		   map.addLayer(zoneLayer);
+    		   map.removeLayer(langLayer);
+    		   map.removeLayer(landLayer);
+			   map.removeLayer(crimeLayer);
+			   map.removeLayer(populationLayer);
+    			
+    			}
+			
+    			function showlandLayer () {
+    		   map.addLayer(landLayer);
+    		   map.removeLayer(zoneLayer);
+    		   map.removeLayer(langLayer);
+			   map.removeLayer(crimeLayer);
+			   map.removeLayer(populationLayer);
+          }
+				function showcrimeLayer () {
+    		   map.addLayer(crimeLayer);
+    		   map.removeLayer(landLayer);
+    		   map.removeLayer(zoneLayer);
+			   map.removeLayer(langLayer);
+			   map.removeLayer(populationLayer);
+          }
+		  
+				function showpopulationLayer () {
+    		   map.addLayer(populationLayer);
+    		   map.removeLayer(landLayer);
+    		   map.removeLayer(zoneLayer);
+			   map.removeLayer(langLayer);
+			   map.removeLayer(crimeLayer);
+          }
+			
+			
+		  
+        });
+		
+    </script>
+  </head>
+
+ 
+   <body>
+   
+ <div style="border: 1px solid white;display: inline-block;">
+ <!---img src="http://i.imgur.com/99VdPbI.jpg"  id="logo"-->
+  <div style="border: 1px solid white; display: inline-block;">
+ <h1> Long Beach: People and Their Environment </h1>
+ </div>
+	
+	
+		
+		
+		
+		<div class="row">
+		</div>
+		
+	<div class="col-md-9">
+		<h2> Web Accessibility for the Visually Impaired</h2>
+			<div class="row"
+			</div>
+			<p> This web page is an attempt to provide access to people who are visually impaired 
+			so this can assist in learning more about their spatial environment.</>
+			
+  
+  
+    
+	
+	  
+	 
+  <p> 
+        Layer List : <span align="right" id="layer_list" font-family="Oswald">
+		  <input type='radio' name="layers" class='list_item' id='layer0CheckBox' value=0 checked/>Languages&nbsp&nbsp;&nbsp;
+          <input type='radio' name="layers" class='list_item' id='layer1CheckBox' value=1 />Zoning&nbsp;&nbsp;
+		  <input type='radio' name="layers" class='list_item' id='layer2CheckBox' value=2 />Landcover&nbsp;&nbsp;&nbsp;
+		  <input type='radio' name="layers" class='list_item' id='layer3CheckBox' value=3 />Crime&nbsp;&nbsp;&nbsp;&nbsp;
+		  <input type='radio' name="layers" class='list_item' id='layer4CheckBox' value=3 />Population&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        </span></p>
+        
+    <div id="map" class="claro" style="width:1000px; height:800px; border:1px solid #000;"></div>
+	
+	<div id="HomeButton"></div>
+	
+	
+	
+		
+		
+	 </body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
