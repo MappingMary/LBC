@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
+      on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>Simple Image Service</title>
+    <link rel="stylesheet" href="http://js.arcgis.com/3.14/esri/css/esri.css" />
+
+    <style>
+      html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; }
+    </style>
+
+    <script src="http://js.arcgis.com/3.14/"></script>
+    <script>
+
+
+	function initialize(){
+      require([
+        "esri/map", 
+		"esri/layers/ArcGISImageServiceLayer", 
+        "esri/layers/ImageServiceParameters", 
+		"dojo/parser",
+		"dojo/on",
+		"esri/geometry/Point",
+		"esri/geometry/ScreenPoint",
+		"esri/tasks/ImageServiceIdentifyTask",
+		"esri/tasks/ImageServiceIdentifyParameters",
+		"esri/tasks/ImageServiceIdentifyResult"
+      ], function(
+        Map, 
+		ArcGISImageServiceLayer, 
+        ImageServiceParameters, 
+		parser,
+		on,
+		Point,
+		ScreenPoint,
+		ImageServiceIdentifyTask,
+		ImageServiceIdentifyParameters,
+		ImageServiceIdentifyResult
+		
+      ) {
+	  
+        parser.parse();
+
+        map = new Map("map", {
+          basemap: "topo",
+          center: [-118.2, 33.8],
+          zoom: 12
+        });
+
+        params = new ImageServiceParameters();
+        params.noData = 0;
+		
+/*
+        crimeraster = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_crime/ImageServer", {
+			imageServiceParameters: params,
+			opacity: 0.75
+        });
+        map.addLayer(crimeraster);
+*/
+
+
+        popraster = new ArcGISImageServiceLayer("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_population/ImageServer", {
+			imageServiceParameters: params,
+			opacity: 0.75
+		});
+        map.addLayer(popraster);
+		
+
+		
+		
+		function printerror(err) {
+			alert(err);  
+
+		}
+		
+		
+		function showpixelpopupcrime(results){
+		
+			crimepixelinfo = results.value;
+		
+		}
+
+		
+		
+
+		
+		function showpopupinfo(results){(
+		
+			poppixelinfo = results.value);
+			
+			alert(" population = " + poppixelinfo);
+			
+	
+			audioctx = new AudioContext();
+	
+			oscillator = audioctx.createOscillator();
+			
+			gainnode = audioctx.createGain();
+	
+			oscillator.connect(gainnode);
+			
+			gainnode.connect(audioctx.destination);
+			
+			oscillator.type = 'sine';
+			
+			oscillator.frequency.value = poppixelinfo; // value in hertz
+			
+			oscillator.start();
+			
+			oscillator.stop(3);
+			
+			setTimeout(function(){
+			
+			
+			
+			}
+			
+			/*
+			
+	var mute = document.querySelector('.mute');
+
+		mute.onclick = function() {
+			if(mute.id == "") {
+			gainNode.disconnect(audioCtx.destination);
+			mute.id = "activated";
+			mute.innerHTML = "Unmute";
+			}
+			else {
+			gainNode.connect(audioCtx.destination);
+			mute.id = "";    
+			mute.innerHTML = "Mute";
+			}
+		
+		*/
+		)}
+		
+		
+		function getpixelvalue(x,y){
+		
+			screenpoint = new ScreenPoint(x,y);
+			
+			mappoint = map.toMap(screenpoint);
+			
+			mapx = mappoint.x;
+			
+			mapy = mappoint.y;
+			
+			runquerytask(mappoint);
+			
+		}
+			
+		function runquerytask(mappoint) {
+			queryparams = new ImageServiceIdentifyParameters();
+			queryparams.geometry = mappoint;
+			
+
+			/*
+			crimetask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_crime/ImageServer/")
+				crimetask.execute(queryparams, showpixelpopupcrime, printerror);
+				*/
+	
+			poptask = new ImageServiceIdentifyTask("http://134.139.94.24:6080/arcgis/rest/services/calliope/lb_population/ImageServer")
+				poptask.execute(queryparams, showpopupinfo, printerror);
+		
+		
+			}
+
+		map.on("click",function(evt){x = evt.clientX; y = evt.clientY; getpixelvalue(x,y)});
+	
+		
+      });
+	
+	}
+
+	
+
+			
+    </script>
+  </head>
+  
+  <body onload="initialize()">
+    <div id="map">
+
+	
+	</div>
+	
+	
+	
+  </body>
+
+</html>
